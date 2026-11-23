@@ -1,12 +1,28 @@
 import type { AskResult, MaterialDoc, PresentCard, SearchHit } from "./types";
 
+/** Strip common Markdown markers for projector-safe plain text. */
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, (block) =>
+      block.replace(/```\w*\n?/g, "").replace(/```/g, "").trim(),
+    )
+    .replace(/!\[[^\]]*]\([^)]+\)/g, "")
+    .replace(/\[([^\]]+)]\([^)]+\)/g, "$1")
+    .replace(/(\*\*|__)(.*?)\1/g, "$2")
+    .replace(/(\*|_)(.*?)\1/g, "$2")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function extractBullets(content: string, max = 4): string[] {
   const lines = content.split(/\n/);
   const bullets: string[] = [];
   for (const line of lines) {
     const m = line.match(/^\s*[-*]\s+(.+)/);
     if (m) {
-      const text = m[1].replace(/\*\*/g, "").trim();
+      const text = stripMarkdown(m[1]);
       if (text.length > 8) bullets.push(text);
     }
     if (bullets.length >= max) break;
@@ -15,7 +31,7 @@ function extractBullets(content: string, max = 4): string[] {
 
   const paras = content
     .split(/\n{2,}/)
-    .map((p) => p.replace(/^#+\s+/gm, "").replace(/\s+/g, " ").trim())
+    .map((p) => stripMarkdown(p.replace(/^#+\s+/gm, "")))
     .filter((p) => p.length > 40 && !p.startsWith("```"));
   return paras.slice(0, max).map((p) => (p.length > 160 ? p.slice(0, 157) + "…" : p));
 }
@@ -35,11 +51,7 @@ function extractCue(content: string): string | undefined {
     /##\s*(Classroom cue|Talk track)\s*\n+([\s\S]*?)(?=\n##\s|\n#\s|$)/i,
   );
   if (cueHeading) {
-    return cueHeading[2]
-      .replace(/\s+/g, " ")
-      .replace(/^Ask:\s*/i, "")
-      .trim()
-      .slice(0, 220);
+    return stripMarkdown(cueHeading[2].replace(/^Ask:\s*/i, "")).slice(0, 220);
   }
   return undefined;
 }
@@ -47,11 +59,11 @@ function extractCue(content: string): string | undefined {
 export function cardFromDoc(doc: MaterialDoc): PresentCard {
   return {
     id: `card-${doc.id}-${Date.now()}`,
-    title: doc.title,
+    title: stripMarkdown(doc.title),
     bullets: extractBullets(doc.content),
     formula: extractFormula(doc.content),
     cue: extractCue(doc.content),
-    sourceTitle: doc.title,
+    sourceTitle: stripMarkdown(doc.title),
     sourcePath: doc.path,
     topic: doc.topic,
   };
@@ -117,7 +129,7 @@ export async function maybeRefineWithLlm(
           {
             role: "system",
             content:
-              "You help an instructor present race-vehicle engineering. Use ONLY the provided sources. Return JSON: {title, bullets: string[3-5], formula?: string, cue?: string}. No invented equations.",
+              "You help an instructor present race-vehicle engineering. Use ONLY the provided sources. Return JSON: {title, bullets: string[3-5], formula?: string, cue?: string}. Plain text only — no Markdown. No invented equations.",
           },
           {
             role: "user",
@@ -144,12 +156,15 @@ export async function maybeRefineWithLlm(
       mode: "llm",
       card: {
         id: `llm-${Date.now()}`,
-        title: parsed.title || primary.title,
+        title: stripMarkdown(parsed.title || primary.title),
         bullets: Array.isArray(parsed.bullets)
-          ? parsed.bullets.filter((b) => typeof b === "string").slice(0, 5)
+          ? parsed.bullets
+              .filter((b): b is string => typeof b === "string")
+              .map(stripMarkdown)
+              .slice(0, 5)
           : base.card.bullets,
-        formula: parsed.formula || base.card.formula,
-        cue: parsed.cue || base.card.cue,
+        formula: parsed.formula ? stripMarkdown(parsed.formula) : base.card.formula,
+        cue: parsed.cue ? stripMarkdown(parsed.cue) : base.card.cue,
         sourceTitle: primary.title,
         sourcePath: primary.path,
         topic: primary.topic,

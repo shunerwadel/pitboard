@@ -53,6 +53,15 @@ export function InstructorConsole() {
 
   useEffect(() => {
     void refreshMaterials();
+    void fetch("/api/present", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { card: PresentCard | null; sessionNote?: string }) => {
+        setPresented(data.card);
+        if (data.sessionNote) setNote(data.sessionNote);
+      })
+      .catch(() => {
+        /* ignore */
+      });
   }, []);
 
   function ask(q: string) {

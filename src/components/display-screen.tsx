@@ -51,10 +51,18 @@ export function DisplayScreen() {
       }
     };
     void poll();
+    // Background tabs get throttled; refresh as soon as the projector tab is focused.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     const id = window.setInterval(poll, 1200);
 
     return () => {
       window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
       window.clearInterval(id);
       bc?.close();
     };
