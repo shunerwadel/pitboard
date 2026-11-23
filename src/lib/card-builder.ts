@@ -16,6 +16,11 @@ export function stripMarkdown(text: string): string {
     .trim();
 }
 
+function isDefinitionBullet(text: string): boolean {
+  // e.g. "m — vehicle mass" or "ay - lateral acceleration"
+  return /^[A-Za-z][A-Za-z0-9_]*\s+[—–-]\s+\S/.test(text) && text.length < 60;
+}
+
 function extractBullets(content: string, max = 4): string[] {
   const lines = content.split(/\n/);
   const bullets: string[] = [];
@@ -23,7 +28,7 @@ function extractBullets(content: string, max = 4): string[] {
     const m = line.match(/^\s*[-*]\s+(.+)/);
     if (m) {
       const text = stripMarkdown(m[1]);
-      if (text.length > 8) bullets.push(text);
+      if (text.length > 8 && !isDefinitionBullet(text)) bullets.push(text);
     }
     if (bullets.length >= max) break;
   }
