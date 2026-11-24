@@ -339,6 +339,40 @@ export function InstructorConsole() {
               {drive ? (
                 <p className="mt-3 text-sm text-[var(--aluminum)]/55">{drive.message}</p>
               ) : null}
+              {drive?.diagnostics ? (
+                <div className="mt-3 space-y-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--aluminum)]/55">
+                  <p>folder id set: {drive.diagnostics.hasFolderId ? "yes" : "no"}</p>
+                  <p>
+                    credentials:{" "}
+                    {drive.diagnostics.hasCredentials
+                      ? `yes (${drive.diagnostics.credentialSource})`
+                      : "no"}
+                  </p>
+                  {drive.diagnostics.clientEmail ? (
+                    <p className="break-all">share with: {drive.diagnostics.clientEmail}</p>
+                  ) : null}
+                  {drive.diagnostics.folderName ? (
+                    <p>folder name: {drive.diagnostics.folderName}</p>
+                  ) : null}
+                  {drive.diagnostics.scannedFiles > 0 || drive.diagnostics.importedNames.length > 0 ? (
+                    <p>
+                      scanned {drive.diagnostics.scannedFiles} · imported{" "}
+                      {drive.diagnostics.importedNames.length} · skipped{" "}
+                      {drive.diagnostics.skippedFiles}
+                    </p>
+                  ) : null}
+                  {drive.diagnostics.importedNames.length > 0 ? (
+                    <p className="break-all">
+                      imported: {drive.diagnostics.importedNames.join(", ")}
+                    </p>
+                  ) : null}
+                  {drive.diagnostics.skippedExamples.length > 0 ? (
+                    <p className="break-all">
+                      skipped: {drive.diagnostics.skippedExamples.join("; ")}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               {drive?.lastSyncAt ? (
                 <p className="mt-2 font-mono text-xs text-[var(--aluminum)]/40">
                   Last sync: {new Date(drive.lastSyncAt).toLocaleString()} · {drive.fileCount} file(s)

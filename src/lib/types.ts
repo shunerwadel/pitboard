@@ -46,4 +46,16 @@ export type DriveStatus = {
   lastSyncAt: string | null;
   fileCount: number;
   message: string;
+  /** Safe diagnostics for the Materials panel (no private keys). */
+  diagnostics?: {
+    hasFolderId: boolean;
+    hasCredentials: boolean;
+    credentialSource: string | null;
+    clientEmail: string | null;
+    folderName: string | null;
+    scannedFiles: number;
+    skippedFiles: number;
+    importedNames: string[];
+    skippedExamples: string[];
+  };
 };

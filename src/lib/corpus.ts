@@ -3,7 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import type { MaterialDoc, SearchHit } from "./types";
 
-const TEXT_EXT = new Set([".md", ".txt", ".markdown"]);
+const TEXT_EXT = new Set([".md", ".txt", ".markdown", ".csv"]);
 
 function materialsRoot() {
   return process.env.MATERIALS_DIR
