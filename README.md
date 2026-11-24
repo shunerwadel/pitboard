@@ -25,7 +25,7 @@ Sync your Drive course folder to disk, then either:
 ### Option B — Google Drive API (live sync button)
 
 1. Create a Google Cloud service account and share the Drive folder with that account (Viewer).
-2. Add secrets (see below):
+2. Set env vars locally (see **Local secrets** below) or bind them for a Cursor-published app:
    - `GOOGLE_DRIVE_FOLDER_ID` — the folder ID from the Drive URL
    - `GOOGLE_SERVICE_ACCOUNT_JSON` — the full service account JSON key
 3. In the instructor console, click **Sync Drive**. Text / Docs export into `materials/.drive-cache/`.
@@ -44,6 +44,28 @@ npm run dev
 ```
 
 Dev server defaults to [http://127.0.0.1:3467](http://127.0.0.1:3467).
+
+### Local secrets (Windows / any machine)
+
+Cursor app secrets do **not** apply to `npm run dev` on your PC. Use a gitignored `.env.local` file:
+
+1. In the project root, copy `.env.example` to `.env.local`.
+2. Fill in values on your machine (do not paste secrets into chat).
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+notepad .env.local
+```
+
+Tips:
+
+- `GOOGLE_DRIVE_FOLDER_ID` is the ID segment in the Drive folder URL.
+- Put `GOOGLE_SERVICE_ACCOUNT_JSON` as **one line** inside double quotes, e.g.  
+  `GOOGLE_SERVICE_ACCOUNT_JSON="{...entire json...}"`
+- Share the Drive folder with the service account email (`...@....iam.gserviceaccount.com`) as **Viewer**.
+- Restart `npm run dev` after saving `.env.local`, then click **Sync Drive** in the UI.
 
 ```bash
 npm run build && npm start
