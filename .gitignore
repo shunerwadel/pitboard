@@ -43,3 +43,7 @@ next-env.d.ts
 
 # synced Drive cache
 materials/.drive-cache/
+
+# local Google service account key (never commit)
+credentials/*
+!credentials/.gitkeep

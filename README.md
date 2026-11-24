@@ -47,25 +47,28 @@ Dev server defaults to [http://127.0.0.1:3467](http://127.0.0.1:3467).
 
 ### Local secrets (Windows / any machine)
 
-Cursor app secrets do **not** apply to `npm run dev` on your PC. Use a gitignored `.env.local` file:
+Cursor app secrets do **not** apply to `npm run dev` on your PC.
 
-1. In the project root, copy `.env.example` to `.env.local`.
-2. Fill in values on your machine (do not paste secrets into chat).
+**Recommended (Windows-friendly):**
 
-PowerShell:
+1. Download your Google Cloud service-account JSON key.
+2. Copy it to `credentials/google-service-account.json` in the project root.
+3. Create `.env.local` with only the folder ID:
 
 ```powershell
 Copy-Item .env.example .env.local
 notepad .env.local
 ```
 
-Tips:
+```env
+GOOGLE_DRIVE_FOLDER_ID=your_folder_id_here
+```
 
-- `GOOGLE_DRIVE_FOLDER_ID` is the ID segment in the Drive folder URL.
-- Put `GOOGLE_SERVICE_ACCOUNT_JSON` as **one line** inside double quotes, e.g.  
-  `GOOGLE_SERVICE_ACCOUNT_JSON="{...entire json...}"`
-- Share the Drive folder with the service account email (`...@....iam.gserviceaccount.com`) as **Viewer**.
-- Restart `npm run dev` after saving `.env.local`, then click **Sync Drive** in the UI.
+4. In Google Drive, **Share** that folder with the service account email from the JSON (`client_email`) as **Viewer**.
+5. Enable **Google Drive API** in the same Google Cloud project.
+6. Restart `npm run dev`, then click **Sync Drive**.
+
+The Materials panel message now says exactly what’s missing (folder ID, bad JSON, permissions, etc.).
 
 ```bash
 npm run build && npm start

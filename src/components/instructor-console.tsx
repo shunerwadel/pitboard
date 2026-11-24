@@ -101,9 +101,12 @@ export function InstructorConsole() {
       const res = await fetch("/api/drive/sync", { method: "POST" });
       const data = (await res.json()) as DriveStatus;
       setDrive(data);
+      if (!res.ok || /failed|missing|not found|denied|invalid/i.test(data.message)) {
+        setError(data.message);
+      }
       await refreshMaterials();
     } catch {
-      setError("Drive sync failed.");
+      setError("Drive sync failed. Check the terminal running npm run dev for details.");
     } finally {
       setSyncing(false);
     }
