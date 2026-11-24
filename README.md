@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Dev server defaults to [http://127.0.0.1:3467](http://127.0.0.1:3467).
+Dev server defaults to [http://127.0.0.1:3471](http://127.0.0.1:3471).
 
 ### Local secrets (Windows / any machine)
 
@@ -78,7 +78,7 @@ npm run build && npm start
 
 | Script        | Purpose                |
 | ------------- | ---------------------- |
-| `npm run dev` | Dev server on port 3467 |
+| `npm run dev` | Dev server on port 3471 |
 | `npm run build` | Production build     |
-| `npm start`   | Start on port 3467     |
+| `npm start`   | Start on port 3471     |
 | `npm run lint` | ESLint                |
