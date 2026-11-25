@@ -40,6 +40,19 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+        navy: {
+          DEFAULT: "var(--navy)",
+          deep: "var(--navy-deep)",
+          mid: "var(--navy-mid)",
+        },
+        mea: {
+          red: "var(--red)",
+          "red-hot": "var(--red-hot)",
+          slate: "var(--slate)",
+          soft: "var(--slate-soft)",
+          line: "var(--line)",
+          mist: "var(--bg-mist)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -47,8 +60,12 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-plex)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Arial Narrow", "sans-serif"],
+        body: ["var(--font-body)", "system-ui", "sans-serif"],
+      },
+      boxShadow: {
+        mea: "var(--shadow)",
       },
     },
   },
