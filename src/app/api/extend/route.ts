@@ -19,13 +19,27 @@ export async function POST(req: Request) {
   }
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request — topic is required and context must be under 4000 characters." },
+      { status: 400 },
+    );
   }
 
-  const result = await runExtend({
-    action: parsed.data.action,
-    topic: parsed.data.topic,
-    context: parsed.data.context || "",
-  });
-  return NextResponse.json(result);
+  try {
+    const result = await runExtend({
+      action: parsed.data.action,
+      topic: parsed.data.topic.slice(0, 300),
+      context: (parsed.data.context || "").slice(0, 4000),
+    });
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Extend failed";
+    console.error("[api/extend]", message);
+    return NextResponse.json(
+      {
+        error: `Extend failed: ${message}. Check OPENAI_API_KEY in .env.local (or use Chart/Analogy fallbacks without a key).`,
+      },
+      { status: 500 },
+    );
+  }
 }

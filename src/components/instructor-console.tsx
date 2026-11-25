@@ -142,12 +142,14 @@ export function InstructorConsole() {
   }
 
   async function extend(action: "analogy" | "chart" | "image") {
-    const topicText =
+    const topicText = (
       query.trim() ||
       messages.filter((m) => m.role === "user").at(-1)?.content ||
-      "race vehicle topic";
-    const context =
-      messages.filter((m) => m.role === "assistant").at(-1)?.content || "";
+      "race vehicle topic"
+    ).slice(0, 300);
+    const context = (
+      messages.filter((m) => m.role === "assistant").at(-1)?.content || ""
+    ).slice(0, 3500);
     setExtending(true);
     setError(null);
     try {
@@ -156,14 +158,34 @@ export function InstructorConsole() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, topic: topicText, context }),
       });
-      const data = await res.json();
-      if (data.kind === "analogy") {
+      let data: {
+        kind?: string;
+        text?: string;
+        media?: StageMedia;
+        error?: string;
+      };
+      try {
+        data = await res.json();
+      } catch {
+        setError(
+          `AI extend failed (${res.status}). Is the dev server still running on this port?`,
+        );
+        return;
+      }
+      if (!res.ok || data.error) {
+        setError(data.error || `AI extend failed (HTTP ${res.status}).`);
+        return;
+      }
+      if (data.kind === "analogy" && data.text) {
         setPendingOutside(data.text);
       } else if (data.media) {
-        setPendingMedia(data.media as StageMedia);
+        setPendingMedia(data.media);
+      } else {
+        setError("AI extend returned an unexpected response. Try Chart again after git pull.");
       }
-    } catch {
-      setError("AI extend failed.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "network error";
+      setError(`AI extend failed: ${message}`);
     } finally {
       setExtending(false);
     }
@@ -171,8 +193,13 @@ export function InstructorConsole() {
 
   async function approveMedia() {
     if (!pendingMedia) return;
-    await updateStage({ media: pendingMedia });
-    setPendingMedia(null);
+    try {
+      await updateStage({ media: pendingMedia });
+      setPendingMedia(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "push failed";
+      setError(`Could not push media to projector: ${message}`);
+    }
   }
 
   const activeAnchorId = session?.activeAnchorId;

@@ -19,7 +19,7 @@ function fallbackChart(topic: string): ChartSpec {
 }
 
 async function llmChart(topic: string, context: string): Promise<ChartSpec> {
-  const key = process.env.OPENAI_API_KEY;
+  const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return fallbackChart(topic);
 
   try {
@@ -79,28 +79,37 @@ async function llmChart(topic: string, context: string): Promise<ChartSpec> {
   }
 }
 
-function placeholderImage(topic: string): StageMedia {
+function sanitizeTopicLabel(topic: string): string {
+  return topic.replace(/[<>&"'`]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) || "topic";
+}
+
+function placeholderImage(topic: string, reason?: string): StageMedia {
+  const label = sanitizeTopicLabel(topic);
+  const detail = sanitizeTopicLabel(
+    reason || "Add OPENAI_API_KEY in .env.local for live image generation",
+  );
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
   <rect width="960" height="540" fill="#12161c"/>
   <rect x="60" y="60" width="840" height="420" rx="16" fill="#1c2430" stroke="#c4ff5c" stroke-width="2"/>
-  <text x="480" y="240" text-anchor="middle" fill="#c4ff5c" font-family="Arial" font-size="28">Generated diagram placeholder</text>
-  <text x="480" y="290" text-anchor="middle" fill="#e8edf2" font-family="Arial" font-size="22">${topic.replace(/[<>&]/g, "")}</text>
-  <text x="480" y="340" text-anchor="middle" fill="#9aa7b5" font-family="Arial" font-size="16">Add OPENAI_API_KEY for image generation</text>
+  <text x="480" y="230" text-anchor="middle" fill="#c4ff5c" font-family="Arial" font-size="28">Generated diagram placeholder</text>
+  <text x="480" y="280" text-anchor="middle" fill="#e8edf2" font-family="Arial" font-size="22">${label}</text>
+  <text x="480" y="330" text-anchor="middle" fill="#9aa7b5" font-family="Arial" font-size="16">${detail}</text>
 </svg>`;
   return {
     id: `img-${Date.now()}`,
     kind: "image",
     imageUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
-    caption: `Generated placeholder for ${topic}`,
+    caption: `Generated placeholder for ${label}`,
     label: "generated",
   };
 }
 
 async function generateImage(topic: string, context: string): Promise<StageMedia> {
-  const key = process.env.OPENAI_API_KEY;
+  const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) return placeholderImage(topic);
 
   try {
+    // Prefer a widely available image model; fall back to placeholder on any API error.
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -108,12 +117,20 @@ async function generateImage(topic: string, context: string): Promise<StageMedia
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
-        prompt: `Simple clean teaching diagram for a race vehicle engineering classroom, no text overload, schematic style: ${topic}. Context: ${context.slice(0, 400)}`,
+        model: process.env.OPENAI_IMAGE_MODEL || "dall-e-3",
+        prompt: `Simple clean teaching diagram for a race vehicle engineering classroom, schematic style, minimal text: ${sanitizeTopicLabel(topic)}. ${context.slice(0, 200)}`,
         size: "1024x1024",
+        n: 1,
       }),
     });
-    if (!res.ok) return placeholderImage(topic);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.warn("[extend/image]", res.status, errText.slice(0, 200));
+      return placeholderImage(
+        topic,
+        `Image API ${res.status} — showing placeholder (check image model access on your OpenAI key)`,
+      );
+    }
     const data = (await res.json()) as {
       data?: { b64_json?: string; url?: string }[];
     };
@@ -121,16 +138,17 @@ async function generateImage(topic: string, context: string): Promise<StageMedia
     const imageUrl = first?.b64_json
       ? `data:image/png;base64,${first.b64_json}`
       : first?.url;
-    if (!imageUrl) return placeholderImage(topic);
+    if (!imageUrl) return placeholderImage(topic, "Image API returned no image");
     return {
       id: `img-${Date.now()}`,
       kind: "image",
       imageUrl,
-      caption: `Generated diagram · ${topic}`,
+      caption: `Generated diagram · ${sanitizeTopicLabel(topic)}`,
       label: "generated",
     };
-  } catch {
-    return placeholderImage(topic);
+  } catch (err) {
+    console.warn("[extend/image]", err);
+    return placeholderImage(topic, "Image request failed — placeholder shown");
   }
 }
 
@@ -160,7 +178,7 @@ export async function runExtend(opts: {
   }
 
   // analogy
-  const key = process.env.OPENAI_API_KEY;
+  const key = process.env.OPENAI_API_KEY?.trim();
   if (!key) {
     return {
       kind: "analogy",
@@ -191,7 +209,12 @@ export async function runExtend(opts: {
       }),
     });
     if (!res.ok) {
-      return { kind: "analogy", text: "Outside AI request failed. Try again." };
+      const errText = await res.text().catch(() => "");
+      console.warn("[extend/analogy]", res.status, errText.slice(0, 200));
+      return {
+        kind: "analogy",
+        text: `Outside AI request failed (HTTP ${res.status}). Check OPENAI_API_KEY billing/model access, or use Notes-only mode.`,
+      };
     }
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
@@ -201,6 +224,9 @@ export async function runExtend(opts: {
       text: stripMarkdown(data.choices?.[0]?.message?.content || "No analogy returned."),
     };
   } catch {
-    return { kind: "analogy", text: "Outside AI request failed. Try again." };
+    return {
+      kind: "analogy",
+      text: "Outside AI request failed (network). Chart still works offline; analogies need a reachable OpenAI API.",
+    };
   }
 }

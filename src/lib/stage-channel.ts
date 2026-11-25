@@ -25,7 +25,10 @@ export async function pushStage(patch: Partial<ClassSession>) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
   });
-  const session = (await res.json()) as ClassSession;
+  const session = (await res.json()) as ClassSession & { error?: string };
+  if (!res.ok || session.error) {
+    throw new Error(session.error || `Stage update failed (HTTP ${res.status})`);
+  }
   broadcastStage(session);
   return session;
 }
