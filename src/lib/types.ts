@@ -24,6 +24,7 @@ export type PresentCard = {
   sourceTitle: string;
   sourcePath: string;
   topic: string;
+  sectionTitle?: string;
 };
 
 export type PresentState = {
@@ -46,7 +47,6 @@ export type DriveStatus = {
   lastSyncAt: string | null;
   fileCount: number;
   message: string;
-  /** Safe diagnostics for the Materials panel (no private keys). */
   diagnostics?: {
     hasFolderId: boolean;
     hasCredentials: boolean;
@@ -58,4 +58,78 @@ export type DriveStatus = {
     importedNames: string[];
     skippedExamples: string[];
   };
+};
+
+export type Citation = {
+  docId: string;
+  title: string;
+  path: string;
+  sectionTitle?: string;
+  snippet: string;
+};
+
+export type ChatMode = "notes" | "notes+extend";
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations?: Citation[];
+  outside?: string;
+  card?: PresentCard;
+  createdAt: number;
+};
+
+export type ChartPoint = { x: number; y: number; label?: string };
+
+export type ChartSpec = {
+  id: string;
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  series: { name: string; points: ChartPoint[] }[];
+  note?: string;
+  provenance: "generated";
+};
+
+export type StageMedia =
+  | {
+      id: string;
+      kind: "chart";
+      chart: ChartSpec;
+      label: "generated";
+    }
+  | {
+      id: string;
+      kind: "image";
+      imageUrl: string;
+      caption: string;
+      label: "generated" | "notes";
+    };
+
+export type ClassAnchor = {
+  id: string;
+  title: string;
+  caption: string;
+  imageUrl: string;
+  source: "upload" | "notes" | "generated" | "sample";
+};
+
+export type ClassSession = {
+  title: string;
+  anchors: ClassAnchor[];
+  activeAnchorId: string | null;
+  dive: PresentCard | null;
+  media: StageMedia | null;
+  updatedAt: number;
+};
+
+export type NotebookSection = {
+  title: string;
+  level: number;
+  preview: string;
+};
+
+export type NotebookDoc = Omit<MaterialDoc, "content"> & {
+  sections: NotebookSection[];
 };

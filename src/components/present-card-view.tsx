@@ -28,6 +28,7 @@ export function PresentCardView({
         )}
       >
         {card.topic}
+        {card.sectionTitle ? ` · ${card.sectionTitle}` : ""}
       </p>
       <h2
         className={cn(

@@ -2,96 +2,107 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, MonitorPlay, RefreshCw, Send, Sparkles } from "lucide-react";
+import {
+  ImageIcon,
+  LineChart,
+  Loader2,
+  MonitorPlay,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ChartView } from "@/components/chart-view";
 import { PresentCardView } from "@/components/present-card-view";
-import { pushPresent } from "@/lib/present-channel";
-import type { AskResult, DriveStatus, MaterialDoc, PresentCard } from "@/lib/types";
+import { pushStage } from "@/lib/stage-channel";
+import type {
+  ChatMessage,
+  ChatMode,
+  ClassSession,
+  DriveStatus,
+  NotebookDoc,
+  PresentCard,
+  StageMedia,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type MaterialMeta = Omit<MaterialDoc, "content">;
-
 const QUICK = [
+  "Driver-in-the-Loop DiL",
   "tire load sensitivity",
   "lateral weight transfer",
   "downforce vs drag",
-  "Ackermann steering",
-  "tractive force limit",
 ];
 
 export function InstructorConsole() {
-  const [query, setQuery] = useState("");
-  const [topic, setTopic] = useState("all");
+  const [docs, setDocs] = useState<NotebookDoc[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
-  const [materials, setMaterials] = useState<MaterialMeta[]>([]);
+  const [topic, setTopic] = useState("all");
   const [drive, setDrive] = useState<DriveStatus | null>(null);
-  const [result, setResult] = useState<AskResult | null>(null);
-  const [presented, setPresented] = useState<PresentCard | null>(null);
-  const [note, setNote] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<ChatMode>("notes");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [session, setSession] = useState<ClassSession | null>(null);
+  const [pendingMedia, setPendingMedia] = useState<StageMedia | null>(null);
+  const [pendingOutside, setPendingOutside] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loadingMaterials, setLoadingMaterials] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
+  const [extending, setExtending] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  async function refreshMaterials() {
-    setLoadingMaterials(true);
+  async function refreshNotebook() {
+    setLoading(true);
     try {
-      const res = await fetch("/api/materials");
-      const data = await res.json();
-      setMaterials(data.materials ?? []);
-      setTopics(data.topics ?? []);
-      setDrive(data.drive ?? null);
+      const [nb, st] = await Promise.all([
+        fetch("/api/notebook").then((r) => r.json()),
+        fetch("/api/stage").then((r) => r.json()),
+      ]);
+      setDocs(nb.docs ?? []);
+      setTopics(nb.topics ?? []);
+      setDrive(nb.drive ?? null);
+      setSession(st as ClassSession);
     } catch {
-      setError("Could not load materials.");
+      setError("Could not load notebook / stage.");
     } finally {
-      setLoadingMaterials(false);
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    void refreshMaterials();
-    void fetch("/api/present", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data: { card: PresentCard | null; sessionNote?: string }) => {
-        setPresented(data.card);
-        if (data.sessionNote) setNote(data.sessionNote);
-      })
-      .catch(() => {
-        /* ignore */
-      });
+    void refreshNotebook();
   }, []);
 
   function ask(q: string) {
     const trimmed = q.trim();
     if (!trimmed) return;
     setError(null);
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      content: trimmed,
+      createdAt: Date.now(),
+    };
+    setMessages((m) => [...m, userMsg]);
     startTransition(async () => {
       try {
-        const res = await fetch("/api/ask", {
+        const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: trimmed, topic }),
+          body: JSON.stringify({ query: trimmed, mode, topic }),
         });
-        if (!res.ok) throw new Error("ask failed");
-        const data = (await res.json()) as AskResult;
-        setResult(data);
+        if (!res.ok) throw new Error("chat failed");
+        const data = (await res.json()) as { message: ChatMessage };
+        setMessages((m) => [...m, data.message]);
+        if (data.message.outside) setPendingOutside(data.message.outside);
       } catch {
-        setError("Lookup failed. Check the server and try again.");
+        setError("Chat failed. Check the server and try again.");
       }
     });
-  }
-
-  async function present(card: PresentCard) {
-    await pushPresent(card, note);
-    setPresented(card);
-  }
-
-  async function clearDisplay() {
-    await pushPresent(null, note);
-    setPresented(null);
   }
 
   async function syncDrive() {
@@ -101,38 +112,89 @@ export function InstructorConsole() {
       const res = await fetch("/api/drive/sync", { method: "POST" });
       const data = (await res.json()) as DriveStatus;
       setDrive(data);
-      if (!res.ok || /failed|missing|not found|denied|invalid/i.test(data.message)) {
+      if (/failed|missing|not found|denied|invalid/i.test(data.message)) {
         setError(data.message);
       }
-      await refreshMaterials();
+      await refreshNotebook();
     } catch {
-      setError("Drive sync failed. Check the terminal running npm run dev for details.");
+      setError("Drive sync failed.");
     } finally {
       setSyncing(false);
     }
   }
 
+  async function updateStage(patch: Partial<ClassSession>) {
+    const next = await pushStage(patch);
+    setSession(next);
+  }
+
+  async function pushDive(card: PresentCard) {
+    await updateStage({ dive: card });
+  }
+
+  async function clearDive() {
+    await updateStage({ dive: null, media: null });
+    setPendingMedia(null);
+  }
+
+  async function setAnchor(id: string) {
+    await updateStage({ activeAnchorId: id });
+  }
+
+  async function extend(action: "analogy" | "chart" | "image") {
+    const topicText =
+      query.trim() ||
+      messages.filter((m) => m.role === "user").at(-1)?.content ||
+      "race vehicle topic";
+    const context =
+      messages.filter((m) => m.role === "assistant").at(-1)?.content || "";
+    setExtending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/extend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, topic: topicText, context }),
+      });
+      const data = await res.json();
+      if (data.kind === "analogy") {
+        setPendingOutside(data.text);
+      } else if (data.media) {
+        setPendingMedia(data.media as StageMedia);
+      }
+    } catch {
+      setError("AI extend failed.");
+    } finally {
+      setExtending(false);
+    }
+  }
+
+  async function approveMedia() {
+    if (!pendingMedia) return;
+    await updateStage({ media: pendingMedia });
+    setPendingMedia(null);
+  }
+
+  const activeAnchorId = session?.activeAnchorId;
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pit-grid pointer-events-none absolute inset-0 opacity-40" />
-      <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-[var(--signal)]/15 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-500/10 blur-3xl" />
-
-      <div className="relative mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 md:px-8 md:py-10">
-        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
+      <div className="relative mx-auto flex max-w-[1400px] flex-col gap-5 px-4 py-6 md:px-6">
+        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--signal)]">
-              Race vehicle classroom
+              Hybrid classroom
             </p>
-            <h1 className="mt-2 font-[family-name:var(--font-display)] text-5xl font-semibold tracking-tight text-[var(--aluminum)] md:text-6xl">
+            <h1 className="mt-1 font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-[var(--aluminum)] md:text-5xl">
               Pitboard
             </h1>
-            <p className="mt-3 max-w-xl text-base text-[var(--aluminum)]/70 md:text-lg">
-              Introduce a topic, pull grounded notes from your allowed materials, then push a clean
-              card to the projector tab while you talk.
+            <p className="mt-2 max-w-2xl text-sm text-[var(--aluminum)]/65 md:text-base">
+              Notebook-grounded chat for deep dives, light visual anchors on the projector, and
+              optional AI extend (analogies / charts / images) with approve-before-push.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/display"
               target="_blank"
@@ -142,7 +204,7 @@ export function InstructorConsole() {
               )}
             >
               <MonitorPlay className="mr-2 h-4 w-4" />
-              Open projector tab
+              Open projector
             </Link>
             <Button
               variant="outline"
@@ -160,40 +222,204 @@ export function InstructorConsole() {
           </div>
         </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="space-y-4 rounded-2xl border border-white/10 bg-black/25 p-5 backdrop-blur-sm md:p-6">
-            <div className="flex flex-wrap gap-2">
+        {error ? (
+          <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="grid gap-4 xl:grid-cols-[0.9fr_1.25fr_0.95fr]">
+          {/* Notebook */}
+          <section className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
+              Notebook
+            </p>
+            <p className="mt-1 text-sm text-[var(--aluminum)]/60">
+              {loading ? "Loading…" : `${docs.length} docs`}
+              {drive?.mode === "sample" ? " · sample corpus" : ""}
+            </p>
+            {drive ? (
+              <p className="mt-2 text-xs text-[var(--aluminum)]/45">{drive.message}</p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => setTopic("all")}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium transition",
+                  "rounded-full px-2.5 py-1 text-[11px]",
                   topic === "all"
                     ? "bg-[var(--signal)] text-[#10140f]"
-                    : "bg-white/5 text-[var(--aluminum)]/70 hover:bg-white/10",
+                    : "bg-white/5 text-[var(--aluminum)]/70",
                 )}
               >
-                all topics
+                all
               </button>
               {topics.map((t) => (
                 <button
-                  type="button"
                   key={t}
+                  type="button"
                   onClick={() => setTopic(t)}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition",
+                    "rounded-full px-2.5 py-1 text-[11px]",
                     topic === t
                       ? "bg-[var(--signal)] text-[#10140f]"
-                      : "bg-white/5 text-[var(--aluminum)]/70 hover:bg-white/10",
+                      : "bg-white/5 text-[var(--aluminum)]/70",
                   )}
                 >
                   {t}
                 </button>
               ))}
             </div>
+            <ul className="mt-3 max-h-[62vh] space-y-2 overflow-y-auto pr-1">
+              {docs
+                .filter((d) => topic === "all" || d.topic === topic)
+                .map((doc) => (
+                  <li key={doc.id} className="rounded-xl border border-white/10 bg-white/[0.03]">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                      onClick={() => setExpanded(expanded === doc.id ? null : doc.id)}
+                    >
+                      <span className="truncate text-sm text-[var(--aluminum)]">{doc.title}</span>
+                      <Badge variant="outline" className="border-white/10 text-[var(--aluminum)]/45">
+                        {doc.topic}
+                      </Badge>
+                    </button>
+                    {expanded === doc.id ? (
+                      <div className="space-y-1 border-t border-white/10 px-2 py-2">
+                        {doc.sections.map((sec, idx) => (
+                          <button
+                            key={`${doc.id}-${idx}-${sec.title}`}
+                            type="button"
+                            className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-white/5"
+                            onClick={() => {
+                              setQuery(sec.title);
+                              ask(sec.title);
+                            }}
+                          >
+                            <p className="text-xs font-medium text-[var(--signal)]">{sec.title}</p>
+                            <p className="line-clamp-2 text-[11px] text-[var(--aluminum)]/50">
+                              {sec.preview}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                ))}
+            </ul>
+          </section>
+
+          {/* Chat */}
+          <section className="flex min-h-[70vh] flex-col rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
+                Teaching chat
+              </p>
+              <div className="flex gap-1 rounded-full bg-white/5 p-1">
+                <button
+                  type="button"
+                  onClick={() => setMode("notes")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs",
+                    mode === "notes"
+                      ? "bg-[var(--signal)] text-[#10140f]"
+                      : "text-[var(--aluminum)]/70",
+                  )}
+                >
+                  Notes only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("notes+extend")}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs",
+                    mode === "notes+extend"
+                      ? "bg-[var(--signal)] text-[#10140f]"
+                      : "text-[var(--aluminum)]/70",
+                  )}
+                >
+                  Notes + AI extend
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3 flex-1 space-y-3 overflow-y-auto pr-1">
+              {messages.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/15 px-4 py-8 text-center text-sm text-[var(--aluminum)]/45">
+                  Introduce a topic, then chat. Grounded answers cite your notebook; extend actions
+                  stay labeled until you approve them for the projector.
+                </div>
+              ) : null}
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-sm",
+                    msg.role === "user"
+                      ? "ml-8 bg-[var(--signal)]/15 text-[var(--aluminum)]"
+                      : "mr-4 border border-white/10 bg-black/30 text-[var(--aluminum)]/90",
+                  )}
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.citations && msg.citations.length > 0 ? (
+                    <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--aluminum)]/40">
+                        Citations
+                      </p>
+                      {msg.citations.map((c) => (
+                        <p key={`${msg.id}-${c.docId}-${c.sectionTitle}`} className="text-xs text-[var(--aluminum)]/55">
+                          {c.title}
+                          {c.sectionTitle ? ` · ${c.sectionTitle}` : ""} — {c.path}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                  {msg.outside ? (
+                    <div className="mt-2 rounded-lg border border-[var(--signal)]/25 bg-[var(--signal)]/5 px-2 py-2">
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--signal)]">
+                        Outside AI
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--aluminum)]/75">
+                        {msg.outside}
+                      </p>
+                    </div>
+                  ) : null}
+                  {msg.card ? (
+                    <div className="mt-3 space-y-2">
+                      <PresentCardView card={msg.card} />
+                      <Button
+                        size="sm"
+                        className="bg-[var(--signal)] text-[#10140f] hover:bg-[var(--signal-dim)]"
+                        onClick={() => void pushDive(msg.card!)}
+                      >
+                        <Send className="mr-2 h-3.5 w-3.5" />
+                        Push deep dive
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {QUICK.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  className="rounded-md border border-white/10 px-2 py-1 text-xs text-[var(--aluminum)]/70 hover:border-[var(--signal)]/40"
+                  onClick={() => {
+                    setQuery(q);
+                    ask(q);
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
 
             <form
-              className="flex flex-col gap-3 sm:flex-row"
+              className="mt-3 flex gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 ask(query);
@@ -202,222 +428,159 @@ export function InstructorConsole() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="What should we put on the board? e.g. load transfer"
-                className="h-12 border-white/15 bg-black/30 text-[var(--aluminum)] placeholder:text-[var(--aluminum)]/35"
+                placeholder="Ask from your notes… e.g. DiL latency"
+                className="h-11 border-white/15 bg-black/30 text-[var(--aluminum)]"
               />
               <Button
                 type="submit"
                 disabled={pending}
-                className="h-12 bg-[var(--signal)] text-[#10140f] hover:bg-[var(--signal-dim)]"
+                className="h-11 bg-[var(--signal)] text-[#10140f] hover:bg-[var(--signal-dim)]"
               >
                 {pending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                 )}
-                Pull up
               </Button>
             </form>
 
-            <div className="flex flex-wrap gap-2">
-              {QUICK.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => {
-                    setQuery(q);
-                    ask(q);
-                  }}
-                  className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-left text-sm text-[var(--aluminum)]/75 transition hover:border-[var(--signal)]/40 hover:text-[var(--aluminum)]"
-                >
-                  {q}
-                </button>
-              ))}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/15 text-[var(--aluminum)]"
+                disabled={extending}
+                onClick={() => void extend("analogy")}
+              >
+                <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                Analogy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/15 text-[var(--aluminum)]"
+                disabled={extending}
+                onClick={() => void extend("chart")}
+              >
+                <LineChart className="mr-1.5 h-3.5 w-3.5" />
+                Chart
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/15 text-[var(--aluminum)]"
+                disabled={extending}
+                onClick={() => void extend("image")}
+              >
+                <ImageIcon className="mr-1.5 h-3.5 w-3.5" />
+                Diagram
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/15 text-[var(--aluminum)]"
+                onClick={() => void clearDive()}
+              >
+                Clear dive / media
+              </Button>
             </div>
-
-            {error ? (
-              <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                {error}
-              </p>
-            ) : null}
-
-            {result ? (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-white/10 text-[var(--aluminum)] hover:bg-white/10">
-                    {result.mode === "llm" ? "LLM refined" : "Retrieved from materials"}
-                  </Badge>
-                  {result.message ? (
-                    <span className="text-sm text-[var(--aluminum)]/55">{result.message}</span>
-                  ) : null}
-                </div>
-                <PresentCardView card={result.card} />
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={() => void present(result.card)}
-                    className="bg-[var(--signal)] text-[#10140f] hover:bg-[var(--signal-dim)]"
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Push to projector
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-white/15 bg-transparent text-[var(--aluminum)]"
-                    onClick={() => void clearDisplay()}
-                  >
-                    Clear display
-                  </Button>
-                </div>
-                {result.hits.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                      Sources consulted
-                    </p>
-                    {result.hits.map((hit) => (
-                      <button
-                        key={hit.doc.id}
-                        type="button"
-                        className="block w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-[var(--signal)]/35"
-                        onClick={() => {
-                          const card = {
-                            ...result.card,
-                            id: `alt-${hit.doc.id}-${Date.now()}`,
-                            title: hit.doc.title,
-                            sourceTitle: hit.doc.title,
-                            sourcePath: hit.doc.path,
-                            topic: hit.doc.topic,
-                          };
-                          setResult({
-                            ...result,
-                            card: {
-                              ...card,
-                              bullets: result.card.bullets,
-                            },
-                          });
-                          void fetch("/api/ask", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ query: hit.doc.title, topic: hit.doc.topic }),
-                          })
-                            .then((r) => r.json())
-                            .then((data: AskResult) => setResult(data));
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-medium text-[var(--aluminum)]">{hit.doc.title}</span>
-                          <span className="font-mono text-xs text-[var(--aluminum)]/40">
-                            {hit.doc.source}
-                          </span>
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-sm text-[var(--aluminum)]/55">
-                          {hit.snippet}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-white/15 px-4 py-10 text-center text-[var(--aluminum)]/50">
-                Ask for a topic to stage the next board card.
-              </div>
-            )}
           </section>
 
+          {/* Class strip */}
           <aside className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-5 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
               <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                Materials
+                Today&apos;s anchors
               </p>
-              <p className="mt-2 text-sm text-[var(--aluminum)]/70">
-                {loadingMaterials
-                  ? "Loading…"
-                  : `${materials.length} document(s) available${
-                      drive?.mode === "sample" ? " (sample local corpus)" : ""
-                    }`}
+              <p className="mt-1 text-sm text-[var(--aluminum)]/60">
+                {session?.title ?? "Loading class…"}
               </p>
-              {drive ? (
-                <p className="mt-3 text-sm text-[var(--aluminum)]/55">{drive.message}</p>
-              ) : null}
-              {drive?.diagnostics ? (
-                <div className="mt-3 space-y-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--aluminum)]/55">
-                  <p>folder id set: {drive.diagnostics.hasFolderId ? "yes" : "no"}</p>
-                  <p>
-                    credentials:{" "}
-                    {drive.diagnostics.hasCredentials
-                      ? `yes (${drive.diagnostics.credentialSource})`
-                      : "no"}
-                  </p>
-                  {drive.diagnostics.clientEmail ? (
-                    <p className="break-all">share with: {drive.diagnostics.clientEmail}</p>
-                  ) : null}
-                  {drive.diagnostics.folderName ? (
-                    <p>folder name: {drive.diagnostics.folderName}</p>
-                  ) : null}
-                  {drive.diagnostics.scannedFiles > 0 || drive.diagnostics.importedNames.length > 0 ? (
-                    <p>
-                      scanned {drive.diagnostics.scannedFiles} · imported{" "}
-                      {drive.diagnostics.importedNames.length} · skipped{" "}
-                      {drive.diagnostics.skippedFiles}
-                    </p>
-                  ) : null}
-                  {drive.diagnostics.importedNames.length > 0 ? (
-                    <p className="break-all">
-                      imported: {drive.diagnostics.importedNames.join(", ")}
-                    </p>
-                  ) : null}
-                  {drive.diagnostics.skippedExamples.length > 0 ? (
-                    <p className="break-all">
-                      skipped: {drive.diagnostics.skippedExamples.join("; ")}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-              {drive?.lastSyncAt ? (
-                <p className="mt-2 font-mono text-xs text-[var(--aluminum)]/40">
-                  Last sync: {new Date(drive.lastSyncAt).toLocaleString()} · {drive.fileCount} file(s)
-                </p>
-              ) : null}
-              <ul className="mt-4 max-h-56 space-y-2 overflow-y-auto pr-1">
-                {materials.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.03] px-3 py-2 text-sm"
-                  >
+              <ul className="mt-3 space-y-2">
+                {(session?.anchors ?? []).map((a) => (
+                  <li key={a.id}>
                     <button
                       type="button"
-                      className="truncate text-left text-[var(--aluminum)]/85 hover:text-[var(--signal)]"
-                      onClick={() => {
-                        setQuery(m.title);
-                        ask(m.title);
-                      }}
+                      onClick={() => void setAnchor(a.id)}
+                      className={cn(
+                        "w-full rounded-xl border px-3 py-2 text-left transition",
+                        activeAnchorId === a.id
+                          ? "border-[var(--signal)]/50 bg-[var(--signal)]/10"
+                          : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                      )}
                     >
-                      {m.title}
+                      <p className="text-sm text-[var(--aluminum)]">{a.title}</p>
+                      <p className="text-xs text-[var(--aluminum)]/50">{a.caption}</p>
                     </button>
-                    <Badge variant="outline" className="shrink-0 border-white/10 text-[var(--aluminum)]/50">
-                      {m.topic}
-                    </Badge>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-5 backdrop-blur-sm">
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
+                Approve tray
+              </p>
+              <p className="mt-1 text-xs text-[var(--aluminum)]/50">
+                Generated content stays here until you push it to the projector.
+              </p>
+
+              {pendingOutside ? (
+                <div className="mt-3 rounded-lg border border-[var(--signal)]/25 bg-[var(--signal)]/5 p-3">
+                  <p className="font-mono text-[10px] uppercase text-[var(--signal)]">Outside AI</p>
+                  <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--aluminum)]/75">
+                    {pendingOutside}
+                  </p>
+                  <Button
+                    size="sm"
+                    className="mt-2 bg-[var(--signal)] text-[#10140f]"
+                    onClick={() => setPendingOutside(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              ) : null}
+
+              {pendingMedia?.kind === "chart" ? (
+                <div className="mt-3 space-y-2">
+                  <ChartView chart={pendingMedia.chart} />
+                  <Button
+                    className="w-full bg-[var(--signal)] text-[#10140f]"
+                    onClick={() => void approveMedia()}
+                  >
+                    Approve &amp; push chart
+                  </Button>
+                </div>
+              ) : null}
+
+              {pendingMedia?.kind === "image" ? (
+                <div className="mt-3 space-y-2">
+                  <div className="overflow-hidden rounded-xl border border-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={pendingMedia.imageUrl} alt={pendingMedia.caption} className="w-full" />
+                  </div>
+                  <p className="text-xs text-[var(--aluminum)]/55">{pendingMedia.caption}</p>
+                  <Button
+                    className="w-full bg-[var(--signal)] text-[#10140f]"
+                    onClick={() => void approveMedia()}
+                  >
+                    Approve &amp; push diagram
+                  </Button>
+                </div>
+              ) : null}
+
+              {!pendingOutside && !pendingMedia ? (
+                <p className="mt-3 text-sm text-[var(--aluminum)]/40">Nothing pending.</p>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
               <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
                 Session note
               </p>
               <Textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Optional note for yourself (not shown on projector)"
-                className="mt-3 min-h-24 border-white/15 bg-black/30 text-[var(--aluminum)]"
+                placeholder="Private reminder for you (not on projector)"
+                className="mt-2 min-h-20 border-white/15 bg-black/30 text-[var(--aluminum)]"
               />
-              <p className="mt-4 text-sm text-[var(--aluminum)]/55">
-                Projector now showing:{" "}
-                <span className="text-[var(--aluminum)]">
-                  {presented ? presented.title : "nothing — push a card"}
-                </span>
-              </p>
             </div>
           </aside>
         </div>
