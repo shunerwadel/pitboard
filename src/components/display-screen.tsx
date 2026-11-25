@@ -80,7 +80,7 @@ export function DisplayScreen() {
             alt="Motorsports Engineering Academy"
             width={96}
             height={71}
-            className="h-12 w-auto object-contain brightness-110"
+            className="h-12 w-auto rounded-[var(--mea-radius)] bg-white/95 object-contain p-1 shadow-mea"
           />
           <div>
             <p className="font-display text-xs uppercase tracking-[0.22em] text-[#ffb4b4]">
