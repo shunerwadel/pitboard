@@ -89,11 +89,11 @@ function placeholderImage(topic: string, reason?: string): StageMedia {
     reason || "Add OPENAI_API_KEY in .env.local for live image generation",
   );
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
-  <rect width="960" height="540" fill="#12161c"/>
-  <rect x="60" y="60" width="840" height="420" rx="16" fill="#1c2430" stroke="#c4ff5c" stroke-width="2"/>
-  <text x="480" y="230" text-anchor="middle" fill="#c4ff5c" font-family="Arial" font-size="28">Generated diagram placeholder</text>
-  <text x="480" y="280" text-anchor="middle" fill="#e8edf2" font-family="Arial" font-size="22">${label}</text>
-  <text x="480" y="330" text-anchor="middle" fill="#9aa7b5" font-family="Arial" font-size="16">${detail}</text>
+  <rect width="960" height="540" fill="#00163a"/>
+  <rect x="60" y="60" width="840" height="420" rx="6" fill="#1a3558" stroke="#c81818" stroke-width="2"/>
+  <text x="480" y="230" text-anchor="middle" fill="#c81818" font-family="Barlow Condensed, Arial Narrow, Arial, sans-serif" font-size="28" font-weight="700">Generated diagram placeholder</text>
+  <text x="480" y="280" text-anchor="middle" fill="#ffffff" font-family="Outfit, Arial, sans-serif" font-size="22">${label}</text>
+  <text x="480" y="330" text-anchor="middle" fill="#d7dde5" font-family="Outfit, Arial, sans-serif" font-size="16">${detail}</text>
 </svg>`;
   return {
     id: `img-${Date.now()}`,
