@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import matter from "gray-matter";
+import { contentTerms, missingRequired, phraseOf } from "./query";
 import type { MaterialDoc, SearchHit } from "./types";
 
 const TEXT_EXT = new Set([".md", ".txt", ".markdown", ".csv"]);
@@ -49,14 +50,23 @@ function toId(filePath: string, root: string) {
 
 function snippetAround(content: string, terms: string[], size = 220): string {
   const lower = content.toLowerCase();
-  let best = 0;
+  let best = -1;
+  let bestScore = -1;
   for (const term of terms) {
-    const idx = lower.indexOf(term);
-    if (idx >= 0) {
-      best = idx;
-      break;
+    let from = 0;
+    while (from < lower.length) {
+      const idx = lower.indexOf(term, from);
+      if (idx < 0) break;
+      const window = lower.slice(Math.max(0, idx - 60), idx + term.length + 60);
+      const colocated = terms.reduce((n, t) => n + (window.includes(t) ? 1 : 0), 0);
+      if (colocated > bestScore) {
+        bestScore = colocated;
+        best = idx;
+      }
+      from = idx + term.length;
     }
   }
+  if (best < 0) best = 0;
   const start = Math.max(0, best - 40);
   const slice = content.slice(start, start + size).replace(/\s+/g, " ").trim();
   return (start > 0 ? "…" : "") + slice + (start + size < content.length ? "…" : "");
@@ -111,20 +121,41 @@ export function searchCorpus(docs: MaterialDoc[], query: string, limit = 6): Sea
     }));
   }
 
-  const terms = q.split(/\s+/).filter(Boolean);
+  const terms = contentTerms(query);
+  const phrase = phraseOf(query);
   const scored: SearchHit[] = [];
+
+  // Document frequency for light IDF — rare terms (engineer) beat ubiquitous ones (race).
+  const df = new Map<string, number>();
+  for (const term of terms) {
+    let n = 0;
+    for (const doc of docs) {
+      const hay = `${doc.title}\n${doc.topic}\n${doc.tags.join(" ")}\n${doc.content}`.toLowerCase();
+      if (hay.includes(term)) n += 1;
+    }
+    df.set(term, n);
+  }
 
   for (const doc of docs) {
     const hay = `${doc.title}\n${doc.topic}\n${doc.tags.join(" ")}\n${doc.content}`.toLowerCase();
+    const missing = missingRequired(hay, query);
+    // Multi-word queries must contain the distinctive required terms.
+    if (missing.length > 0) continue;
+
     let score = 0;
+    if (phrase.length >= 4 && hay.includes(phrase)) score += 30;
+
     for (const term of terms) {
       if (!hay.includes(term)) continue;
-      const titleHit = doc.title.toLowerCase().includes(term) ? 8 : 0;
-      const topicHit = doc.topic.toLowerCase().includes(term) ? 5 : 0;
-      const tagHit = doc.tags.some((t) => t.toLowerCase().includes(term)) ? 4 : 0;
-      const count = hay.split(term).length - 1;
-      score += titleHit + topicHit + tagHit + Math.min(count, 6);
+      const docsWithTerm = df.get(term) || 1;
+      const idf = Math.log(1 + docs.length / docsWithTerm);
+      const titleHit = doc.title.toLowerCase().includes(term) ? 10 : 0;
+      const topicHit = doc.topic.toLowerCase().includes(term) ? 6 : 0;
+      const tagHit = doc.tags.some((t) => t.toLowerCase().includes(term)) ? 5 : 0;
+      const count = Math.min(hay.split(term).length - 1, 6);
+      score += (titleHit + topicHit + tagHit + count * 2) * idf;
     }
+
     if (score > 0) {
       scored.push({
         doc,

@@ -1,3 +1,4 @@
+import { contentTerms, phraseOf } from "./query";
 import type { AskResult, MaterialDoc, PresentCard, SearchHit } from "./types";
 
 /** Strip common Markdown markers for projector-safe plain text. */
@@ -17,11 +18,7 @@ export function stripMarkdown(text: string): string {
 }
 
 function queryTerms(query: string): string[] {
-  return query
-    .trim()
-    .toLowerCase()
-    .split(/[^a-z0-9]+/i)
-    .filter((t) => t.length >= 2);
+  return contentTerms(query);
 }
 
 function isDefinitionBullet(text: string): boolean {
@@ -110,15 +107,21 @@ export function splitIntoSections(content: string): DocSection[] {
   return sections.length > 0 ? sections : [{ title: "", level: 0, body: content, text: content }];
 }
 
-function scoreText(text: string, terms: string[]): number {
+function scoreText(text: string, terms: string[], phrase = ""): number {
   if (terms.length === 0) return 0;
   const lower = text.toLowerCase();
   let score = 0;
+  const present = terms.filter((t) => lower.includes(t));
+  // Prefer regions where query terms co-occur.
+  if (terms.length > 1) {
+    score += present.length * 8;
+    if (present.length < terms.length) score -= (terms.length - present.length) * 12;
+  }
+  if (phrase && phrase.length >= 4 && lower.includes(phrase)) score += 28;
   for (const term of terms) {
     if (!lower.includes(term)) continue;
     const count = lower.split(term).length - 1;
     score += Math.min(count, 8) * 2;
-    // Prefer denser / earlier mentions slightly.
     const idx = lower.indexOf(term);
     if (idx >= 0 && idx < 120) score += 3;
   }
@@ -166,6 +169,7 @@ export function focusContentForQuery(
   query: string,
 ): { title: string; body: string; focused: string } {
   const terms = queryTerms(query);
+  const phrase = phraseOf(query);
   const sections = splitIntoSections(content);
 
   if (terms.length === 0) {
@@ -181,12 +185,11 @@ export function focusContentForQuery(
   let bestScore = -1;
   for (const section of sections) {
     const titleLower = section.title.toLowerCase();
-    let score = scoreText(section.body, terms);
+    let score = scoreText(section.text, terms, phrase);
     for (const term of terms) {
       if (titleLower === term) score += 40;
       else if (titleLower.includes(term)) score += 24;
     }
-    // Prefer tighter topical sections over huge catch-alls when scores tie-ish.
     if (section.body.length > 0 && section.body.length < 2500) score += 1;
     if (score > bestScore) {
       bestScore = score;
@@ -198,7 +201,7 @@ export function focusContentForQuery(
   if (bestScore < 4) {
     const focused = windowAroundMatch(content, terms);
     const nearbyHeading =
-      [...content.slice(0, content.indexOf(focused) + 1).matchAll(/^#{1,6}\s+(.+)$/gm)].pop()?.[1] ||
+      [...content.slice(0, Math.max(0, content.indexOf(focused)) + 1).matchAll(/^#{1,6}\s+(.+)$/gm)].pop()?.[1] ||
       "";
     return {
       title: nearbyHeading.trim(),

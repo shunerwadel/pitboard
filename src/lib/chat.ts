@@ -29,14 +29,24 @@ function groundedAnswer(query: string, docs: MaterialDoc[]): {
   const hits = searchCorpus(docs, query, 4);
   const citations = buildCitations(docs, query);
   if (hits.length === 0) {
+    const topics = [...new Set(docs.map((d) => d.topic))].sort().slice(0, 8);
+    const titles = docs.map((d) => d.title).slice(0, 6);
     return {
-      content: `I don’t have that in the allowed materials for “${query.trim()}”. Try another phrasing or pin a notebook section for context.`,
+      content: [
+        `I don’t have notes that specifically cover “${query.trim()}”.`,
+        "I only answer from your notebook — a partial word match (for example only “race” in “race car”) is not enough.",
+        topics.length ? `Topics available: ${topics.join(", ")}.` : "",
+        titles.length ? `Try a section name from the notebook, e.g. ${titles[0]}.` : "Browse the notebook or sync Drive.",
+      ]
+        .filter(Boolean)
+        .join("\n"),
       card: {
         id: `empty-${Date.now()}`,
-        title: "Nothing in the allowed materials",
+        title: "Nothing specific in the allowed materials",
         bullets: [
-          `No notes matched “${query.trim()}”.`,
-          "Browse the notebook and pin a section, or sync Drive.",
+          `No strong match for “${query.trim()}”.`,
+          "Open a notebook section and click it, or ask with terms that appear in your notes (DiL, load transfer, Ackermann, …).",
+          "Add a “race engineer” section to your Drive materials if you want that topic covered.",
         ],
         sourceTitle: "—",
         sourcePath: "",
