@@ -32,7 +32,9 @@ function extractBullets(content: string, max = 4): string[] {
     const m = line.match(/^\s*[-*]\s+(.+)/);
     if (m) {
       let text = stripMarkdown(m[1]);
-      text = text.replace(/\\-/g, "-").replace(/\\!/g, "!").trim();
+      text = text
+        .replace(/\\([\\`*_{}[\]()#+\-.!])/g, "$1")
+        .trim();
       // Skip outline "slide" reminders like "Units and sign conventions slide"
       if (/slide\s*$/i.test(text) && text.length < 60) continue;
       if (text.length > 8 && !isDefinitionBullet(text)) bullets.push(text);
