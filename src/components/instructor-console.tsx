@@ -212,39 +212,35 @@ export function InstructorConsole() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <div className="pit-grid pointer-events-none absolute inset-0 opacity-40" />
+      <div className="pit-grid pointer-events-none absolute inset-0" />
       <div className="relative mx-auto flex max-w-[1400px] flex-col gap-5 px-4 py-6 md:px-6">
-        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--signal)]">
-              Hybrid classroom
-            </p>
-            <h1 className="mt-1 font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight text-[var(--aluminum)] md:text-5xl">
-              Pitboard
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--aluminum)]/65 md:text-base">
-              Notebook-grounded chat for deep dives, light visual anchors on the projector, and
-              optional AI extend (analogies / charts / images) with approve-before-push.
-            </p>
+        <header className="flex flex-col gap-4 border-b border-[var(--line)] bg-white/80 px-4 py-4 shadow-mea backdrop-blur-md md:flex-row md:items-center md:justify-between md:px-5">
+          <div className="flex min-w-0 items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/mea-logo.png"
+              alt="Motorsports Engineering Academy"
+              width={104}
+              height={77}
+              className="h-14 w-auto object-contain"
+            />
+            <div className="min-w-0">
+              <p className="kicker">Instructor console</p>
+              <h1 className="brand-display mt-1 text-3xl font-extrabold text-[var(--navy)] md:text-4xl">
+                Pitboard
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-[var(--slate)] md:text-base">
+                Notebook-grounded chat for deep dives, light visual anchors on the projector, and
+                optional AI extend with approve-before-push.
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/display"
-              target="_blank"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "border-white/15 bg-white/5 text-[var(--aluminum)]",
-              )}
-            >
+            <Link href="/display" target="_blank" className={cn(buttonVariants({ variant: "outline" }))}>
               <MonitorPlay className="mr-2 h-4 w-4" />
               Open projector
             </Link>
-            <Button
-              variant="outline"
-              className="border-white/15 bg-white/5 text-[var(--aluminum)]"
-              onClick={() => void syncDrive()}
-              disabled={syncing}
-            >
+            <Button variant="default" onClick={() => void syncDrive()} disabled={syncing}>
               {syncing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -256,33 +252,31 @@ export function InstructorConsole() {
         </header>
 
         {error ? (
-          <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <p className="rounded-[var(--mea-radius)] border border-[var(--red)]/30 bg-[var(--red)]/5 px-3 py-2 text-sm text-[var(--red)]">
             {error}
           </p>
         ) : null}
 
         <div className="grid gap-4 xl:grid-cols-[0.9fr_1.25fr_0.95fr]">
           {/* Notebook */}
-          <section className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-              Notebook
-            </p>
-            <p className="mt-1 text-sm text-[var(--aluminum)]/60">
+          <section className="panel p-4">
+            <p className="kicker text-[0.85rem]">Notebook</p>
+            <p className="mt-1 text-sm text-[var(--slate)]">
               {loading ? "Loading…" : `${docs.length} docs`}
               {drive?.mode === "sample" ? " · sample corpus" : ""}
             </p>
             {drive ? (
-              <p className="mt-2 text-xs text-[var(--aluminum)]/45">{drive.message}</p>
+              <p className="mt-2 text-xs text-[var(--slate-soft)]">{drive.message}</p>
             ) : null}
             <div className="mt-3 flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => setTopic("all")}
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px]",
+                  "rounded-[var(--mea-radius)] px-2.5 py-1 text-[11px] font-medium",
                   topic === "all"
-                    ? "bg-[var(--signal)] text-[#10140f]"
-                    : "bg-white/5 text-[var(--aluminum)]/70",
+                    ? "bg-[var(--navy)] text-white"
+                    : "bg-[var(--bg-mist)] text-[var(--navy-mid)] hover:bg-[var(--line)]",
                 )}
               >
                 all
@@ -293,10 +287,10 @@ export function InstructorConsole() {
                   type="button"
                   onClick={() => setTopic(t)}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-[11px]",
+                    "rounded-[var(--mea-radius)] px-2.5 py-1 text-[11px] font-medium",
                     topic === t
-                      ? "bg-[var(--signal)] text-[#10140f]"
-                      : "bg-white/5 text-[var(--aluminum)]/70",
+                      ? "bg-[var(--navy)] text-white"
+                      : "bg-[var(--bg-mist)] text-[var(--navy-mid)] hover:bg-[var(--line)]",
                   )}
                 >
                   {t}
@@ -307,31 +301,29 @@ export function InstructorConsole() {
               {docs
                 .filter((d) => topic === "all" || d.topic === topic)
                 .map((doc) => (
-                  <li key={doc.id} className="rounded-xl border border-white/10 bg-white/[0.03]">
+                  <li key={doc.id} className="rounded-[var(--mea-radius)] border border-[var(--line)] bg-[var(--bg-soft)]">
                     <button
                       type="button"
                       className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
                       onClick={() => setExpanded(expanded === doc.id ? null : doc.id)}
                     >
-                      <span className="truncate text-sm text-[var(--aluminum)]">{doc.title}</span>
-                      <Badge variant="outline" className="border-white/10 text-[var(--aluminum)]/45">
-                        {doc.topic}
-                      </Badge>
+                      <span className="truncate text-sm font-medium text-[var(--navy)]">{doc.title}</span>
+                      <Badge variant="outline">{doc.topic}</Badge>
                     </button>
                     {expanded === doc.id ? (
-                      <div className="space-y-1 border-t border-white/10 px-2 py-2">
+                      <div className="space-y-1 border-t border-[var(--line)] px-2 py-2">
                         {doc.sections.map((sec, idx) => (
                           <button
                             key={`${doc.id}-${idx}-${sec.title}`}
                             type="button"
-                            className="block w-full rounded-lg px-2 py-1.5 text-left hover:bg-white/5"
+                            className="block w-full rounded-[var(--mea-radius)] px-2 py-1.5 text-left hover:bg-white"
                             onClick={() => {
                               setQuery(sec.title);
                               ask(sec.title);
                             }}
                           >
-                            <p className="text-xs font-medium text-[var(--signal)]">{sec.title}</p>
-                            <p className="line-clamp-2 text-[11px] text-[var(--aluminum)]/50">
+                            <p className="text-xs font-semibold text-[var(--red)]">{sec.title}</p>
+                            <p className="line-clamp-2 text-[11px] text-[var(--slate-soft)]">
                               {sec.preview}
                             </p>
                           </button>
@@ -344,19 +336,15 @@ export function InstructorConsole() {
           </section>
 
           {/* Chat */}
-          <section className="flex min-h-[70vh] flex-col rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
+          <section className="panel flex min-h-[70vh] flex-col p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                  Teaching chat
-                </p>
+                <p className="kicker text-[0.85rem]">Teaching chat</p>
                 {aiStatus ? (
                   <p
                     className={cn(
                       "mt-1 text-[11px]",
-                      aiStatus.configured
-                        ? "text-[var(--signal)]/80"
-                        : "text-amber-200/80",
+                      aiStatus.configured ? "text-[var(--navy-mid)]" : "text-amber-700",
                     )}
                   >
                     {aiStatus.configured
@@ -365,15 +353,15 @@ export function InstructorConsole() {
                   </p>
                 ) : null}
               </div>
-              <div className="flex gap-1 rounded-full bg-white/5 p-1">
+              <div className="flex gap-1 rounded-[var(--mea-radius)] bg-[var(--bg-mist)] p-1">
                 <button
                   type="button"
                   onClick={() => setMode("notes")}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs",
+                    "rounded-[var(--mea-radius)] px-3 py-1 text-xs font-medium",
                     mode === "notes"
-                      ? "bg-[var(--signal)] text-[#10140f]"
-                      : "text-[var(--aluminum)]/70",
+                      ? "bg-[var(--red)] text-white"
+                      : "text-[var(--navy-mid)] hover:bg-white",
                   )}
                 >
                   Notes only
@@ -382,10 +370,10 @@ export function InstructorConsole() {
                   type="button"
                   onClick={() => setMode("notes+extend")}
                   className={cn(
-                    "rounded-full px-3 py-1 text-xs",
+                    "rounded-[var(--mea-radius)] px-3 py-1 text-xs font-medium",
                     mode === "notes+extend"
-                      ? "bg-[var(--signal)] text-[#10140f]"
-                      : "text-[var(--aluminum)]/70",
+                      ? "bg-[var(--red)] text-white"
+                      : "text-[var(--navy-mid)] hover:bg-white",
                   )}
                 >
                   Notes + AI extend
@@ -395,7 +383,7 @@ export function InstructorConsole() {
 
             <div className="mt-3 flex-1 space-y-3 overflow-y-auto pr-1">
               {messages.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/15 px-4 py-8 text-center text-sm text-[var(--aluminum)]/45">
+                <div className="rounded-[var(--mea-radius)] border border-dashed border-[var(--line)] bg-[var(--bg-soft)] px-4 py-8 text-center text-sm text-[var(--slate-soft)]">
                   Introduce a topic, then chat. Grounded answers cite your notebook; extend actions
                   stay labeled until you approve them for the projector.
                 </div>
@@ -404,20 +392,23 @@ export function InstructorConsole() {
                 <div
                   key={msg.id}
                   className={cn(
-                    "rounded-xl px-3 py-2 text-sm",
+                    "rounded-[var(--mea-radius)] px-3 py-2 text-sm",
                     msg.role === "user"
-                      ? "ml-8 bg-[var(--signal)]/15 text-[var(--aluminum)]"
-                      : "mr-4 border border-white/10 bg-black/30 text-[var(--aluminum)]/90",
+                      ? "ml-8 bg-[var(--navy)] text-white"
+                      : "mr-4 border border-[var(--line)] bg-[var(--bg-soft)] text-[var(--text)]",
                   )}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
                   {msg.citations && msg.citations.length > 0 ? (
-                    <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
-                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--aluminum)]/40">
+                    <div className="mt-2 space-y-1 border-t border-[var(--line)] pt-2">
+                      <p className="font-display text-[10px] uppercase tracking-[0.14em] text-[var(--slate-soft)]">
                         Citations
                       </p>
                       {msg.citations.map((c) => (
-                        <p key={`${msg.id}-${c.docId}-${c.sectionTitle}`} className="text-xs text-[var(--aluminum)]/55">
+                        <p
+                          key={`${msg.id}-${c.docId}-${c.sectionTitle}`}
+                          className="text-xs text-[var(--slate)]"
+                        >
                           {c.title}
                           {c.sectionTitle ? ` · ${c.sectionTitle}` : ""} — {c.path}
                         </p>
@@ -425,11 +416,11 @@ export function InstructorConsole() {
                     </div>
                   ) : null}
                   {msg.outside ? (
-                    <div className="mt-2 rounded-lg border border-[var(--signal)]/25 bg-[var(--signal)]/5 px-2 py-2">
-                      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--signal)]">
+                    <div className="mt-2 rounded-[var(--mea-radius)] border border-[var(--red)]/25 bg-[var(--red)]/5 px-2 py-2">
+                      <p className="font-display text-[10px] uppercase tracking-[0.14em] text-[var(--red)]">
                         Outside AI
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--aluminum)]/75">
+                      <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--slate)]">
                         {msg.outside}
                       </p>
                     </div>
@@ -437,11 +428,7 @@ export function InstructorConsole() {
                   {msg.card ? (
                     <div className="mt-3 space-y-2">
                       <PresentCardView card={msg.card} />
-                      <Button
-                        size="sm"
-                        className="bg-[var(--signal)] text-[#10140f] hover:bg-[var(--signal-dim)]"
-                        onClick={() => void pushDive(msg.card!)}
-                      >
+                      <Button size="sm" onClick={() => void pushDive(msg.card!)}>
                         <Send className="mr-2 h-3.5 w-3.5" />
                         Push deep dive
                       </Button>
@@ -456,7 +443,7 @@ export function InstructorConsole() {
                 <button
                   key={q}
                   type="button"
-                  className="rounded-md border border-white/10 px-2 py-1 text-xs text-[var(--aluminum)]/70 hover:border-[var(--signal)]/40"
+                  className="rounded-[var(--mea-radius)] border border-[var(--line)] bg-white px-2 py-1 text-xs text-[var(--navy-mid)] hover:border-[var(--red)] hover:text-[var(--red)]"
                   onClick={() => {
                     setQuery(q);
                     ask(q);
@@ -478,13 +465,9 @@ export function InstructorConsole() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ask from your notes… e.g. DiL latency"
-                className="h-11 border-white/15 bg-black/30 text-[var(--aluminum)]"
+                className="h-11"
               />
-              <Button
-                type="submit"
-                disabled={pending}
-                className="h-11 bg-[var(--signal)] text-[#10140f] hover:bg-[var(--signal-dim)]"
-              >
+              <Button type="submit" disabled={pending} className="h-11">
                 {pending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -497,7 +480,6 @@ export function InstructorConsole() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/15 text-[var(--aluminum)]"
                 disabled={extending}
                 onClick={() => void extend("analogy")}
               >
@@ -507,7 +489,6 @@ export function InstructorConsole() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/15 text-[var(--aluminum)]"
                 disabled={extending}
                 onClick={() => void extend("chart")}
               >
@@ -517,19 +498,13 @@ export function InstructorConsole() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/15 text-[var(--aluminum)]"
                 disabled={extending}
                 onClick={() => void extend("image")}
               >
                 <ImageIcon className="mr-1.5 h-3.5 w-3.5" />
                 Diagram
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/15 text-[var(--aluminum)]"
-                onClick={() => void clearDive()}
-              >
+              <Button variant="ghost" size="sm" onClick={() => void clearDive()}>
                 Clear dive / media
               </Button>
             </div>
@@ -537,53 +512,59 @@ export function InstructorConsole() {
 
           {/* Class strip */}
           <aside className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                Today&apos;s anchors
-              </p>
-              <p className="mt-1 text-sm text-[var(--aluminum)]/60">
-                {session?.title ?? "Loading class…"}
-              </p>
-              <ul className="mt-3 space-y-2">
+            <div className="overflow-hidden rounded-[var(--mea-radius)] shadow-mea">
+              <div className="relative overflow-hidden bg-gradient-to-r from-[var(--navy-deep)] to-[var(--navy)] px-4 py-3 text-white">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-40"
+                  style={{
+                    background:
+                      "repeating-linear-gradient(-45deg, rgba(255,255,255,0.08) 0 12px, rgba(200,24,24,0.55) 12px 24px, transparent 24px 36px)",
+                  }}
+                />
+                <p className="relative font-display text-[0.85rem] uppercase tracking-[0.14em] text-white/70">
+                  Today&apos;s anchors
+                </p>
+                <p className="relative mt-1 font-display text-lg font-bold uppercase tracking-wide text-[#ffd7d7]">
+                  {session?.title ?? "Loading class…"}
+                </p>
+              </div>
+              <ul className="space-y-2 bg-white p-3">
                 {(session?.anchors ?? []).map((a) => (
                   <li key={a.id}>
                     <button
                       type="button"
                       onClick={() => void setAnchor(a.id)}
                       className={cn(
-                        "w-full rounded-xl border px-3 py-2 text-left transition",
+                        "w-full rounded-[var(--mea-radius)] border px-3 py-2 text-left transition",
                         activeAnchorId === a.id
-                          ? "border-[var(--signal)]/50 bg-[var(--signal)]/10"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                          ? "border-[var(--red)] bg-[var(--red)]/5"
+                          : "border-[var(--line)] bg-[var(--bg-soft)] hover:border-[var(--navy-mid)]",
                       )}
                     >
-                      <p className="text-sm text-[var(--aluminum)]">{a.title}</p>
-                      <p className="text-xs text-[var(--aluminum)]/50">{a.caption}</p>
+                      <p className="text-sm font-medium text-[var(--navy)]">{a.title}</p>
+                      <p className="text-xs text-[var(--slate-soft)]">{a.caption}</p>
                     </button>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                Approve tray
-              </p>
-              <p className="mt-1 text-xs text-[var(--aluminum)]/50">
+            <div className="panel p-4">
+              <p className="kicker text-[0.85rem]">Approve tray</p>
+              <p className="mt-1 text-xs text-[var(--slate-soft)]">
                 Generated content stays here until you push it to the projector.
               </p>
 
               {pendingOutside ? (
-                <div className="mt-3 rounded-lg border border-[var(--signal)]/25 bg-[var(--signal)]/5 p-3">
-                  <p className="font-mono text-[10px] uppercase text-[var(--signal)]">Outside AI</p>
-                  <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--aluminum)]/75">
+                <div className="mt-3 rounded-[var(--mea-radius)] border border-[var(--red)]/25 bg-[var(--red)]/5 p-3">
+                  <p className="font-display text-[10px] uppercase tracking-[0.14em] text-[var(--red)]">
+                    Outside AI
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-xs text-[var(--slate)]">
                     {pendingOutside}
                   </p>
-                  <Button
-                    size="sm"
-                    className="mt-2 bg-[var(--signal)] text-[#10140f]"
-                    onClick={() => setPendingOutside(null)}
-                  >
+                  <Button size="sm" className="mt-2" onClick={() => setPendingOutside(null)}>
                     Dismiss
                   </Button>
                 </div>
@@ -592,10 +573,7 @@ export function InstructorConsole() {
               {pendingMedia?.kind === "chart" ? (
                 <div className="mt-3 space-y-2">
                   <ChartView chart={pendingMedia.chart} />
-                  <Button
-                    className="w-full bg-[var(--signal)] text-[#10140f]"
-                    onClick={() => void approveMedia()}
-                  >
+                  <Button className="w-full" onClick={() => void approveMedia()}>
                     Approve &amp; push chart
                   </Button>
                 </div>
@@ -603,32 +581,27 @@ export function InstructorConsole() {
 
               {pendingMedia?.kind === "image" ? (
                 <div className="mt-3 space-y-2">
-                  <div className="overflow-hidden rounded-xl border border-white/10">
+                  <div className="overflow-hidden rounded-[var(--mea-radius)] border border-[var(--line)]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={pendingMedia.imageUrl} alt={pendingMedia.caption} className="w-full" />
                   </div>
-                  <p className="text-xs text-[var(--aluminum)]/55">{pendingMedia.caption}</p>
-                  <Button
-                    className="w-full bg-[var(--signal)] text-[#10140f]"
-                    onClick={() => void approveMedia()}
-                  >
+                  <p className="text-xs text-[var(--slate-soft)]">{pendingMedia.caption}</p>
+                  <Button className="w-full" onClick={() => void approveMedia()}>
                     Approve &amp; push diagram
                   </Button>
                 </div>
               ) : null}
 
               {!pendingOutside && !pendingMedia ? (
-                <p className="mt-3 text-sm text-[var(--aluminum)]/40">Nothing pending.</p>
+                <p className="mt-3 text-sm text-[var(--slate-soft)]">Nothing pending.</p>
               ) : null}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                Session note
-              </p>
+            <div className="panel p-4">
+              <p className="kicker text-[0.85rem]">Session note</p>
               <Textarea
                 placeholder="Private reminder for you (not on projector)"
-                className="mt-2 min-h-20 border-white/15 bg-black/30 text-[var(--aluminum)]"
+                className="mt-2 min-h-20"
               />
             </div>
           </aside>

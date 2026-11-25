@@ -4,29 +4,48 @@
 
 @layer base {
   :root {
-    --background: #12161c;
-    --foreground: #e8edf2;
-    --card: #181e26;
-    --card-foreground: #e8edf2;
-    --popover: #181e26;
-    --popover-foreground: #e8edf2;
-    --primary: #c4ff5c;
-    --primary-foreground: #10140f;
-    --secondary: #243040;
-    --secondary-foreground: #e8edf2;
-    --muted: #1c2430;
-    --muted-foreground: #9aa7b5;
-    --accent: #243040;
-    --accent-foreground: #e8edf2;
-    --destructive: #ef4444;
-    --border: rgb(255 255 255 / 12%);
-    --input: rgb(255 255 255 / 14%);
-    --ring: #c4ff5c;
-    --radius: 0.75rem;
-    --signal: #c4ff5c;
-    --signal-dim: #a8e048;
-    --aluminum: #e8edf2;
-    --asphalt: #12161c;
+    /* Motorsports Engineering Academy brand tokens */
+    --navy: #002156;
+    --navy-deep: #00163a;
+    --navy-mid: #1a3558;
+    --red: #c81818;
+    --red-hot: #e01e1e;
+    --slate: #3f4a5a;
+    --slate-soft: #6b7585;
+    --line: #d7dde5;
+    --bg: #ffffff;
+    --bg-soft: #f3f5f8;
+    --bg-mist: #e8edf3;
+    --text: #142033;
+    --shadow: 0 18px 50px rgba(0, 33, 86, 0.12);
+    --mea-radius: 4px;
+
+    /* App semantic mapping (shadcn + legacy aliases) */
+    --background: #fbfcfd;
+    --foreground: #142033;
+    --card: #ffffff;
+    --card-foreground: #142033;
+    --popover: #ffffff;
+    --popover-foreground: #142033;
+    --primary: #c81818;
+    --primary-foreground: #ffffff;
+    --secondary: #e8edf3;
+    --secondary-foreground: #002156;
+    --muted: #f3f5f8;
+    --muted-foreground: #6b7585;
+    --accent: #e8edf3;
+    --accent-foreground: #002156;
+    --destructive: #c81818;
+    --border: rgb(0 33 86 / 10%);
+    --input: rgb(0 33 86 / 14%);
+    --ring: #c81818;
+    --radius: 0.375rem;
+
+    /* Legacy Pitboard aliases → brand */
+    --signal: #c81818;
+    --signal-dim: #e01e1e;
+    --aluminum: #142033;
+    --asphalt: #fbfcfd;
   }
 
   * {
@@ -34,24 +53,62 @@
   }
 
   body {
-    color: var(--aluminum);
-    background-color: var(--asphalt);
-    font-family: var(--font-plex), system-ui, sans-serif;
+    color: var(--text);
+    background-color: var(--bg);
+    font-family: var(--font-body), system-ui, sans-serif;
     background-image:
-      radial-gradient(ellipse 80% 50% at 10% -10%, rgba(196, 255, 92, 0.12), transparent),
-      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(56, 139, 180, 0.12), transparent),
-      linear-gradient(180deg, #141a22 0%, #0d1015 100%);
+      radial-gradient(circle at 88% 8%, rgba(200, 24, 24, 0.05), transparent 28%),
+      radial-gradient(circle at 8% 18%, rgba(0, 33, 86, 0.06), transparent 32%),
+      linear-gradient(180deg, #fbfcfd 0%, var(--bg) 18%, var(--bg) 100%);
     min-height: 100vh;
+    text-rendering: optimizeLegibility;
   }
 }
 
 @layer utilities {
   .pit-grid {
     background-image:
-      linear-gradient(rgba(232, 237, 242, 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(232, 237, 242, 0.04) 1px, transparent 1px);
-    background-size: 48px 48px;
-    mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+      linear-gradient(rgba(0, 33, 86, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 33, 86, 0.035) 1px, transparent 1px),
+      radial-gradient(circle at 70% 30%, rgba(200, 24, 24, 0.07), transparent 35%),
+      url("data:image/svg+xml,%3Csvg width='220' height='220' viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23002156' stroke-opacity='0.08' stroke-width='1.4'%3E%3Cpath d='M10 40h50v40h40v50h50v40'/%3E%3Cpath d='M160 20v40h40v60H140v40'/%3E%3Ccircle cx='60' cy='80' r='3' fill='%23002156' fill-opacity='0.12' stroke='none'/%3E%3Ccircle cx='100' cy='120' r='3' fill='%23c81818' fill-opacity='0.18' stroke='none'/%3E%3Ccircle cx='150' cy='60' r='3' fill='%23002156' fill-opacity='0.12' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 48px 48px, 48px 48px, auto, 220px 220px;
+    mask-image: none;
+    opacity: 0.55;
+    animation: circuit-drift 28s linear infinite;
+  }
+
+  .pit-grid-dark {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      radial-gradient(circle at 70% 30%, rgba(200, 24, 24, 0.14), transparent 35%),
+      url("data:image/svg+xml,%3Csvg width='220' height='220' viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.1' stroke-width='1.4'%3E%3Cpath d='M10 40h50v40h40v50h50v40'/%3E%3Cpath d='M160 20v40h40v60H140v40'/%3E%3Ccircle cx='60' cy='80' r='3' fill='%23ffffff' fill-opacity='0.14' stroke='none'/%3E%3Ccircle cx='100' cy='120' r='3' fill='%23c81818' fill-opacity='0.35' stroke='none'/%3E%3Ccircle cx='150' cy='60' r='3' fill='%23ffffff' fill-opacity='0.14' stroke='none'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 48px 48px, 48px 48px, auto, 220px 220px;
+    animation: circuit-drift 28s linear infinite;
+  }
+
+  .panel {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
+  }
+
+  .kicker {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--red);
+  }
+
+  .brand-display {
+    font-family: var(--font-display), "Arial Narrow", sans-serif;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 0.95;
   }
 
   .animate-in {
@@ -68,6 +125,15 @@
 
   .zoom-in-95 {
     animation-name: pit-zoom;
+  }
+}
+
+@keyframes circuit-drift {
+  from {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  to {
+    background-position: 48px 48px, 48px 48px, 0 0, 220px 0;
   }
 }
 
@@ -99,5 +165,12 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pit-grid,
+  .pit-grid-dark {
+    animation: none;
   }
 }

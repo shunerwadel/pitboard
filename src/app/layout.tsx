@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Syne } from "next/font/google";
+import { Barlow_Condensed, Outfit } from "next/font/google";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
-  variable: "--font-plex",
+const outfit = Outfit({
+  variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const syne = Syne({
+const barlow = Barlow_Condensed({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["600", "700"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "Pitboard",
+  title: "Pitboard · Motorsports Engineering Academy",
   description:
     "Classroom co-pilot for race vehicle engineering — pull grounded notes and push them to a projector tab.",
 };
@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${plex.variable} ${syne.variable} antialiased`}>{children}</body>
+      <body className={`${outfit.variable} ${barlow.variable} antialiased`}>{children}</body>
     </html>
   );
 }

@@ -9,8 +9,10 @@ import { sampleClassSession } from "@/lib/sample-class";
 
 export function DisplayScreen() {
   const [session, setSession] = useState<ClassSession>(sampleClassSession());
+  const [clockReady, setClockReady] = useState(false);
 
   useEffect(() => {
+    setClockReady(true);
     const local = readLocalStage();
     if (local) setSession(local);
 
@@ -63,15 +65,39 @@ export function DisplayScreen() {
     session.anchors.find((a) => a.id === session.activeAnchorId) ?? session.anchors[0] ?? null;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#0b0e12] text-[var(--aluminum)]">
-      <div className="pit-grid pointer-events-none absolute inset-0 opacity-30" />
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[var(--navy-deep)] text-white">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-90"
+        style={{
+          background:
+            "radial-gradient(circle at 88% 8%, rgba(200, 24, 24, 0.18), transparent 28%), radial-gradient(circle at 8% 18%, rgba(255,255,255,0.06), transparent 32%), linear-gradient(135deg, var(--navy-deep), var(--navy-mid))",
+        }}
+      />
+      <div className="pit-grid-dark pointer-events-none absolute inset-0 opacity-40" />
       <header className="relative z-10 flex items-center justify-between px-8 py-5 md:px-12">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--signal)]">Pitboard</p>
-          <p className="mt-1 text-sm text-[var(--aluminum)]/50">{session.title}</p>
+        <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/mea-logo.png"
+            alt="Motorsports Engineering Academy"
+            width={96}
+            height={71}
+            className="h-12 w-auto rounded-[var(--mea-radius)] bg-white/95 object-contain p-1 shadow-mea"
+          />
+          <div>
+            <p className="font-display text-xs uppercase tracking-[0.22em] text-[#ffb4b4]">
+              Pitboard · Projector
+            </p>
+            <p className="mt-1 text-sm text-white/55">{session.title}</p>
+          </div>
         </div>
-        <p className="font-mono text-xs text-[var(--aluminum)]/35">
-          {session.updatedAt ? new Date(session.updatedAt).toLocaleTimeString() : "waiting"}
+        <p
+          className="font-display text-xs uppercase tracking-[0.14em] text-white/40"
+          suppressHydrationWarning
+        >
+          {clockReady && session.updatedAt
+            ? new Date(session.updatedAt).toLocaleTimeString()
+            : "waiting"}
         </p>
       </header>
 
@@ -79,22 +105,22 @@ export function DisplayScreen() {
         <section className="flex min-h-[50vh] flex-col justify-center">
           {active ? (
             <div className="animate-in fade-in duration-500">
-              <p className="font-mono text-xs uppercase tracking-[0.22em] text-[var(--signal)]">
+              <p className="font-display text-xs uppercase tracking-[0.22em] text-[#ffb4b4]">
                 Anchor
               </p>
-              <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold tracking-tight md:text-5xl">
+              <h1 className="brand-display mt-2 text-4xl font-extrabold tracking-tight text-white md:text-5xl">
                 {active.title}
               </h1>
-              <p className="mt-2 max-w-2xl text-lg text-[var(--aluminum)]/60">{active.caption}</p>
+              <p className="mt-2 max-w-2xl text-lg text-white/65">{active.caption}</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={active.imageUrl}
                 alt={active.title}
-                className="mt-6 w-full rounded-2xl border border-white/10 object-cover shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
+                className="mt-6 w-full rounded-md border border-white/15 object-cover shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
               />
             </div>
           ) : (
-            <div className="text-center text-[var(--aluminum)]/50">No anchor selected</div>
+            <div className="text-center text-white/50">No anchor selected</div>
           )}
         </section>
 
@@ -104,7 +130,7 @@ export function DisplayScreen() {
               <PresentCardView card={session.dive} large />
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-[var(--aluminum)]/50">
+            <div className="rounded-md border border-dashed border-white/20 bg-white/5 px-6 py-10 text-white/50">
               Deep dive standing by — push from the instructor console when you want detail.
             </div>
           )}
@@ -113,12 +139,12 @@ export function DisplayScreen() {
             <ChartView chart={session.media.chart} large />
           ) : null}
           {session.media?.kind === "image" ? (
-            <figure className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+            <figure className="overflow-hidden rounded-md border border-white/15 bg-white/5">
               <div className="flex items-center justify-between px-4 pt-3">
-                <figcaption className="text-sm text-[var(--aluminum)]/70">
+                <figcaption className="text-sm text-white/70">
                   {session.media.caption}
                 </figcaption>
-                <span className="rounded-full border border-[var(--signal)]/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[var(--signal)]">
+                <span className="rounded-[var(--mea-radius)] border border-[#ffb4b4]/40 px-2 py-0.5 font-display text-[10px] uppercase tracking-[0.14em] text-[#ffb4b4]">
                   {session.media.label}
                 </span>
               </div>
