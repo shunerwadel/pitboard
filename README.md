@@ -30,6 +30,8 @@ npm run dev
 
 Open [http://127.0.0.1:4317](http://127.0.0.1:4317) (instructor) and `/display` (projector).
 
+`npm run dev` frees port **4317** before starting. If you still see `EADDRINUSE`, run `npm run dev:clean` or close the other terminal that is already running Pitboard (a leftover `node` / `next dev` process is almost always the cause).
+
 ### Secrets (`.env.local`)
 
 See [`.env.example`](./.env.example). Recommended on Windows: put the service-account JSON at `credentials/google-service-account.json` and set only `GOOGLE_DRIVE_FOLDER_ID`.
