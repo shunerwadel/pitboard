@@ -31,7 +31,10 @@ function extractBullets(content: string, max = 4): string[] {
   for (const line of lines) {
     const m = line.match(/^\s*[-*]\s+(.+)/);
     if (m) {
-      const text = stripMarkdown(m[1]);
+      let text = stripMarkdown(m[1]);
+      text = text.replace(/\\-/g, "-").replace(/\\!/g, "!").trim();
+      // Skip outline "slide" reminders like "Units and sign conventions slide"
+      if (/slide\s*$/i.test(text) && text.length < 60) continue;
       if (text.length > 8 && !isDefinitionBullet(text)) bullets.push(text);
     }
     if (bullets.length >= max) break;
@@ -73,13 +76,29 @@ export type DocSection = {
   text: string;
 };
 
-/** Split markdown into heading sections (plus a preamble if present). */
+function cleanHeadingTitle(raw: string): string {
+  return raw
+    .replace(/\*\*/g, "")
+    .replace(/\\-/g, "-")
+    .replace(/\\!/g, "!")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Split markdown into heading sections.
+ * Supports normal headings AND outline-style notes where headings are nested
+ * in list items, e.g. `  * ### Unit and sign conventions`.
+ */
 export function splitIntoSections(content: string): DocSection[] {
   const lines = content.split(/\n/);
   const sections: DocSection[] = [];
   let title = "";
   let level = 0;
   let bodyLines: string[] = [];
+
+  // `# Title` OR `* ### Title` OR indented variants from outline exports.
+  const headingRe = /^(?:\s*(?:[-*]|\d+\.)\s+)?(#{1,6})\s+(.+?)\s*$/;
 
   const push = () => {
     const body = bodyLines.join("\n").trim();
@@ -93,10 +112,10 @@ export function splitIntoSections(content: string): DocSection[] {
   };
 
   for (const line of lines) {
-    const heading = line.match(/^(#{1,6})\s+(.+)\s*$/);
+    const heading = line.match(headingRe);
     if (heading) {
       push();
-      title = heading[2].trim();
+      title = cleanHeadingTitle(heading[2]);
       level = heading[1].length;
       bodyLines = [];
     } else {
@@ -186,6 +205,12 @@ export function focusContentForQuery(
   for (const section of sections) {
     const titleLower = section.title.toLowerCase();
     let score = scoreText(section.text, terms, phrase);
+    // Strong boost when the query matches the section title (exact or near).
+    if (titleLower === phrase) score += 80;
+    else if (phrase.length >= 4 && titleLower.includes(phrase)) score += 60;
+    else if (phrase.length >= 4 && phrase.includes(titleLower) && titleLower.length >= 8) {
+      score += 50;
+    }
     for (const term of terms) {
       if (titleLower === term) score += 40;
       else if (titleLower.includes(term)) score += 24;
