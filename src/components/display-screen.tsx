@@ -9,8 +9,10 @@ import { sampleClassSession } from "@/lib/sample-class";
 
 export function DisplayScreen() {
   const [session, setSession] = useState<ClassSession>(sampleClassSession());
+  const [clockReady, setClockReady] = useState(false);
 
   useEffect(() => {
+    setClockReady(true);
     const local = readLocalStage();
     if (local) setSession(local);
 
@@ -89,8 +91,13 @@ export function DisplayScreen() {
             <p className="mt-1 text-sm text-white/55">{session.title}</p>
           </div>
         </div>
-        <p className="font-display text-xs uppercase tracking-[0.14em] text-white/40">
-          {session.updatedAt ? new Date(session.updatedAt).toLocaleTimeString() : "waiting"}
+        <p
+          className="font-display text-xs uppercase tracking-[0.14em] text-white/40"
+          suppressHydrationWarning
+        >
+          {clockReady && session.updatedAt
+            ? new Date(session.updatedAt).toLocaleTimeString()
+            : "waiting"}
         </p>
       </header>
 
