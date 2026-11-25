@@ -36,7 +36,26 @@ Open [http://127.0.0.1:4317](http://127.0.0.1:4317) (instructor) and `/display` 
 
 See [`.env.example`](./.env.example). Recommended on Windows: put the service-account JSON at `credentials/google-service-account.json` and set only `GOOGLE_DRIVE_FOLDER_ID`.
 
-`OPENAI_API_KEY` enables richer extend (analogies / charts / images). Without it, extend still returns offline fallbacks / placeholder diagrams.
+### OpenAI setup (local)
+
+1. Create a **Platform** API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys) (not ChatGPT Plus).
+2. Put billing credits on the OpenAI account if prompted.
+3. In the project root:
+
+```powershell
+Copy-Item .env.example .env.local
+notepad .env.local
+```
+
+4. Set one line (no quotes):
+
+```env
+OPENAI_API_KEY=sk-your-key-here
+```
+
+5. Restart `npm run dev`. The chat header should say **OpenAI connected**.
+
+Without a key, grounded notebook chat still works; Chart uses an offline sketch; Diagram shows a placeholder.
 
 ## Scripts
 

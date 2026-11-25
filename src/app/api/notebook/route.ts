@@ -18,9 +18,19 @@ export async function GET() {
     return { ...meta, sections };
   });
 
+  const openaiKey = process.env.OPENAI_API_KEY?.trim() || "";
   return NextResponse.json({
     docs: notebook,
     topics: topicsFromDocs(docs),
     drive: await getDriveStatus(),
+    ai: {
+      provider: "openai",
+      configured: openaiKey.length > 0,
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      message:
+        openaiKey.length > 0
+          ? "OpenAI key detected for AI extend."
+          : "No OPENAI_API_KEY loaded. Add it to .env.local and restart npm run dev.",
+    },
   });
 }

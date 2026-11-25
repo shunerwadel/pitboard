@@ -42,6 +42,11 @@ export function InstructorConsole() {
   const [topics, setTopics] = useState<string[]>([]);
   const [topic, setTopic] = useState("all");
   const [drive, setDrive] = useState<DriveStatus | null>(null);
+  const [aiStatus, setAiStatus] = useState<{
+    provider: string;
+    configured: boolean;
+    message: string;
+  } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<ChatMode>("notes");
@@ -65,6 +70,7 @@ export function InstructorConsole() {
       setDocs(nb.docs ?? []);
       setTopics(nb.topics ?? []);
       setDrive(nb.drive ?? null);
+      setAiStatus(nb.ai ?? null);
       setSession(st as ClassSession);
     } catch {
       setError("Could not load notebook / stage.");
@@ -340,9 +346,25 @@ export function InstructorConsole() {
           {/* Chat */}
           <section className="flex min-h-[70vh] flex-col rounded-2xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
-                Teaching chat
-              </p>
+              <div>
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--aluminum)]/45">
+                  Teaching chat
+                </p>
+                {aiStatus ? (
+                  <p
+                    className={cn(
+                      "mt-1 text-[11px]",
+                      aiStatus.configured
+                        ? "text-[var(--signal)]/80"
+                        : "text-amber-200/80",
+                    )}
+                  >
+                    {aiStatus.configured
+                      ? "OpenAI connected"
+                      : "OpenAI key not loaded — add OPENAI_API_KEY to .env.local"}
+                  </p>
+                ) : null}
+              </div>
               <div className="flex gap-1 rounded-full bg-white/5 p-1">
                 <button
                   type="button"
