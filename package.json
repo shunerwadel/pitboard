@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "npx --yes kill-port 4317 && next start -H 127.0.0.1 -p 4317",
     "lint": "next lint",
-    "dev:clean": "npx --yes kill-port 4317 3471 3467"
+    "dev:clean": "npx --yes kill-port 4317 3471 3467",
+    "split:notes": "npx --yes tsx scripts/split-outline-notes.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
